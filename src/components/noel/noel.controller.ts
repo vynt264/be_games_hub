@@ -1,4 +1,4 @@
-import { Controller, Post, UseGuards, Req, Get, Query, Body, BadRequestException } from "@nestjs/common";
+import { Controller, Post, UseGuards, Req, Get, Query, Body } from "@nestjs/common";
 import { AuthGuard } from "../../common/guards/auth.guard";
 import {
   ApiTags,
@@ -13,7 +13,7 @@ import { AuthUser } from "../auth/interfaces/login.interface";
 import { Roles, RolesGuard } from "src/common/guards/roles.guard";
 import { ROLE_USER } from "src/common/constants/admin.constant";
 import { NoelService } from "./noel.service";
-import { encryptWithPublicKey, verifyWithPublicKey } from "src/common/helpers/data-encryption.helper";
+// import { encryptWithPublicKey, verifyWithPublicKey } from "src/common/helpers/data-encryption.helper";
 
 @ApiTags("NOEL")
 @ApiBearerAuth()
@@ -33,27 +33,27 @@ export class NoelController {
     type: EncryptedResponseDto,
   })
   @ApiResponse({ status: 401, description: "Token không hợp lệ" })
-  async startGame(@Req() req: AuthUser, @Body() startGameDto: StartGameRequestDto): Promise<EncryptedResponseDto> {
+  async startGame(@Req() req: AuthUser, @Body() startGameDto: StartGameRequestDto) {
     const { username } = req.user;
-    if (
-      !startGameDto.encryptionPublicKey ||
-      !startGameDto.verificationPublicKey
-    ) {
-      throw new BadRequestException("Thiếu public key");
-    }
-
-    // Lưu public key vào Map
-    this.noelService.saveClientPublicKey(
-      username,
-      startGameDto.encryptionPublicKey,
-      startGameDto.verificationPublicKey,
-    );
+    // Tạm thời bỏ kiểm tra và lưu public key.
+    // if (
+    //   !startGameDto.encryptionPublicKey ||
+    //   !startGameDto.verificationPublicKey
+    // ) {
+    //   throw new BadRequestException("Thiếu public key");
+    // }
+    // this.noelService.saveClientPublicKey(
+    //   username,
+    //   startGameDto.encryptionPublicKey,
+    //   startGameDto.verificationPublicKey,
+    // );
     const result = await this.noelService.startGame(username);
-    const encrypted = await encryptWithPublicKey(
-      startGameDto.encryptionPublicKey,
-      result.data.noelState,
-    );
-    return { ...result, data: encrypted };
+    // const encrypted = await encryptWithPublicKey(
+    //   startGameDto.encryptionPublicKey,
+    //   result.data.noelState,
+    // );
+    // return { ...result, data: encrypted };
+    return result;
   }
 
   @Post("end")
@@ -80,25 +80,22 @@ export class NoelController {
     const { username } = req.user;
 
 
-    // Kiểm tra public key có trong Map không
-    const publicKeys = this.noelService.getClientPublicKey(username);
-    if (!publicKeys || !publicKeys.verifyKey) {
-      throw new BadRequestException(
-        "Không tìm thấy public key hoặc public key đã hết hạn cho session này. Vui lòng bắt đầu game mới.",
-      );
-    }
-
-    // Kiểm tra chữ ký của client
-    const isValid = await verifyWithPublicKey(
-      publicKeys.verifyKey,
-      endGameDto.payload,
-      endGameDto.signature,
-    );
-    if (!isValid) {
-      throw new BadRequestException("Chữ ký không hợp lệ");
-    }
-
-    this.noelService.deleteClientPublicKey(username);
+    // Tạm thời bỏ kiểm tra public key và chữ ký của client.
+    // const publicKeys = this.noelService.getClientPublicKey(username);
+    // if (!publicKeys || !publicKeys.verifyKey) {
+    //   throw new BadRequestException(
+    //     "Không tìm thấy public key hoặc public key đã hết hạn cho session này. Vui lòng bắt đầu game mới.",
+    //   );
+    // }
+    // const isValid = await verifyWithPublicKey(
+    //   publicKeys.verifyKey,
+    //   endGameDto.payload,
+    //   endGameDto.signature,
+    // );
+    // if (!isValid) {
+    //   throw new BadRequestException("Chữ ký không hợp lệ");
+    // }
+    // this.noelService.deleteClientPublicKey(username);
     return this.noelService.endGame(
       username,
       endGameDto.payload.gameId,
